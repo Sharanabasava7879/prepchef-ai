@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-Powered Cooking To-Do List and Daily Meal Planner. Generate customized recipes, grocery lists, substitutions, and budget notes instantly using Gemini.">
+  <title>PrepChef AI - Interactive Cooking Planner & To-Do List</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ==========================================
+       CSS variables & CSS Reset
+       ========================================== */
+    :root {
+      --bg-primary: #020617;
+      --bg-secondary: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.45);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(16, 185, 129, 0.3);
+      
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --accent: #10b981; /* Emerald */
+      --accent-hover: #059669;
+      --accent-glow: rgba(16, 185, 129, 0.15);
+      
+      --secondary-accent: #6366f1; /* Indigo */
+      --secondary-glow: rgba(99, 102, 241, 0.15);
+      
+      --warning: #f59e0b; /* Amber */
+      --danger: #f43f5e; /* Rose */
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%),
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 40%),
+        radial-gradient(circle at center, rgba(15, 23, 42, 0.5), var(--bg-primary));
+      background-attachment: fixed;
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+    }
+
+    a:hover {
+      color: var(--text-primary);
+    }
+
+    /* ==========================================
+       App Layout
+       ========================================== */
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(2, 6, 23, 0.7);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+      background: linear-gradient(135deg, var(--accent), var(--secondary-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3));
+    }
+
+    .logo-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(to right, var(--text-primary), var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ==========================================
+       Components: Cards & Buttons
+       ========================================== */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: var(--transition-smooth);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:hover {
+      border-color: var(--card-border-hover);
+      box-shadow: 0 12px 40px 0 rgba(16, 185, 129, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #059669);
+      color: white;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--text-muted);
+    }
+
+    .btn-key-status {
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-key-status.missing {
+      background: rgba(244, 63, 94, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .btn-key-status:hover {
+      background: rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-key-status.missing:hover {
+      background: rgba(244, 63, 94, 0.2);
+    }
+
+    /* ==========================================
+       Form Elements
+       ========================================== */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: var(--transition-smooth);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .meals-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    .meal-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: var(--transition-smooth);
+    }
+
+    .meal-checkbox-label input {
+      display: none;
+    }
+
+    .meal-checkbox-label:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--text-primary);
+    }
+
+    .meal-checkbox-label::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--text-muted);
+      border-radius: 4px;
+      display: inline-block;
+      transition: var(--transition-smooth);
+    }
+
+    .meal-checkbox-label:has(input:checked)::before {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+      background-size: 10px;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    /* ==========================================
+       Dashboard / Output Grid
+       ========================================== */
+    .dashboard-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      border: 2px dashed rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-lg);
+      background: rgba(15, 23, 42, 0.2);
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
+      animation: float 4s ease-in-out infinite;
+      filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.2));
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ==========================================
+       Meal Cards Display
+       ========================================== */
+    .section-title {
+      font-size: 1.3rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .section-title-icon {
+      color: var(--accent);
+    }
+
+    .meal-suggestions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .meal-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .meal-badge {
+      display: inline-block;
+      align-self: flex-start;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .meal-badge.breakfast { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .meal-badge.lunch { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .meal-badge.dinner { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .meal-badge.snack { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+    .meal-header {
+      margin-bottom: 0.75rem;
+    }
+
+    .meal-name {
+      font-size: 1.25rem;
+      line-height: 1.2;
+      margin-bottom: 0.25rem;
+    }
+
+    .meal-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .meal-description {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      flex-grow: 1;
+    }
+
+    .recipe-steps-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1rem;
+    }
+
+    .recipe-steps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .recipe-steps-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--secondary-accent));
+      transition: width 0.3s ease;
+    }
+
+    .step-todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .step-todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 0.25rem 0;
+    }
+
+    .step-todo-item input {
+      margin-top: 0.15rem;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .step-todo-item.done {
+      color: var(--text-dim);
+      text-decoration: line-through;
+    }
+
+    /* ==========================================
+       Two Column List Sections
+       ========================================== */
+    .dashboard-split-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-split-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Grocery List */
+    .grocery-categories {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .grocery-category-block {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      padding-bottom: 1rem;
+    }
+
+    .grocery-category-block:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .category-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--secondary-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .grocery-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .grocery-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-smooth);
+    }
+
+    .grocery-item:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .grocery-item-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .grocery-item-left input {
+      accent-color: var(--accent);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .grocery-item.checked .grocery-item-left {
+      text-decoration: line-through;
+      color: var(--text-dim);
+    }
+
+    .grocery-item-cost {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .grocery-item.checked .grocery-item-cost {
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    /* Ingredient Substitutions */
+    .substitution-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .substitution-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .sub-comparison {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .sub-original {
+      color: var(--danger);
+      text-decoration: line-through;
+    }
+
+    .sub-arrow {
+      color: var(--text-muted);
+    }
+
+    .sub-replacement {
+      color: var(--accent);
+      background: rgba(16, 185, 129, 0.1);
+      padding: 0.1rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .sub-reason {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Budget Feasibility Note */
+    .budget-note-card {
+      background: rgba(16, 185, 129, 0.05);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      font-size: 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .budget-note-card.tight {
+      background: rgba(245, 158, 11, 0.05);
+      border-left-color: var(--warning);
+    }
+
+    .budget-note-card.exceeded {
+      background: rgba(244, 63, 94, 0.05);
+      border-left-color: var(--danger);
+    }
+
+    .budget-note-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .budget-note-title.fit { color: var(--accent); }
+    .budget-note-title.tight { color: var(--warning); }
+    .budget-note-title.exceeded { color: var(--danger); }
+
+    /* ==========================================
+       Settings Drawer / Modal
+       ========================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      position: relative;
+      transform: translateY(20px);
+      transition: var(--transition-smooth);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-overlay.open .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    .key-info-box {
+      background: rgba(99, 102, 241, 0.05);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .key-info-box a {
+      text-decoration: underline;
+    }
+
+    /* ==========================================
+       Loading Shimmer & Spinner UI
+       ========================================== */
+    .shimmer-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .shimmer-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shimmer-item {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+      );
+      background-size: 200% 100%;
+      animation: loading-shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes loading-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .shimmer-title { height: 28px; width: 40%; margin-bottom: 1.5rem; }
+    .shimmer-text-long { height: 16px; width: 90%; margin-bottom: 0.75rem; }
+    .shimmer-text-short { height: 16px; width: 60%; margin-bottom: 1.5rem; }
+    .shimmer-blocks { display: flex; gap: 1rem; }
+    .shimmer-block { height: 120px; flex: 1; border-radius: var(--radius-md); }
+
+    /* ==========================================
+       Toast Alerts
+       ========================================== */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .toast {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.5rem;
+      color: var(--text-primary);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      backdrop-filter: blur(12px);
+      transform: translateY(20px);
+      opacity: 0;
+      animation: toast-in 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .toast.success { border-left: 4px solid var(--accent); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .toast.info { border-left: 4px solid var(--secondary-accent); }
+
+    @keyframes toast-in {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.hide {
+      animation: toast-out 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes toast-out {
+      to {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+    }
+
+    /* ==========================================
+       Footer
+       ========================================== */
+    footer {
+      padding: 2rem;
+      text-align: center;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      background: rgba(2, 6, 23, 0.5);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo-container">
+      <span class="logo-icon">🍳</span>
+      <span class="logo-title">PrepChef AI</span>
+    </div>
+    <div class="header-actions">
+      <button id="keyStatusBtn" class="btn btn-key-status missing" onclick="toggleModal(true)">
+        🔑 Set API Key
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main>
+    <!-- Left Panel: User Preferences Form -->
+    <section class="card" aria-labelledby="formHeading">
+      <h2 id="formHeading" style="margin-bottom: 1.5rem; font-size: 1.5rem;">Daily Context</h2>
+      <form id="preferencesForm" onsubmit="handleFormSubmit(event)">
+        
+        <!-- Number of Meals Selection -->
+        <div class="form-group">
+          <label>Number of Meals</label>
+          <div class="meals-grid">
+            <label class="meal-checkbox-label">
+              <input type="checkbox" name="meals" value="Breakfast" checked> Breakfast
+            </label>
+            <label class="meal-checkbox-label">
+              <input type="checkbox" name="meals" value="Lunch" checked> Lunch
+            </label>
+            <label class="meal-checkbox-label">
+              <input type="checkbox" name="meals" value="Dinner" checked> Dinner
+            </label>
+            <label class="meal-checkbox-label">
+              <input type="checkbox" name="meals" value="Snack"> Snack
+            </label>
+          </div>
+        </div>
+
+        <!-- Dietary Preference Selection -->
+        <div class="form-group">
+          <label for="dietarySelect">Dietary Preference</label>
+          <select id="dietarySelect" name="dietary" class="form-control" onchange="toggleCustomDietInput()">
+            <option value="None">No Dietary Restrictions</option>
+            <option value="Vegetarian">Vegetarian</option>
+            <option value="Vegan">Vegan</option>
+            <option value="Keto">Keto / Low-Carb</option>
+            <option value="Paleo">Paleo</option>
+            <option value="Gluten-Free">Gluten-Free</option>
+            <option value="Dairy-Free">Dairy-Free</option>
+            <option value="Custom">Custom / Allergies...</option>
+          </select>
+        </div>
+
+        <!-- Custom Allergies / Preferences text area -->
+        <div class="form-group" id="customDietGroup" style="display: none;">
+          <label for="customDietText">Allergies & Custom Preferences</label>
+          <textarea id="customDietText" name="customDiet" class="form-control" rows="2" placeholder="e.g. Nut allergy, no seafood, lactose intolerant"></textarea>
+        </div>
+
+        <!-- Budget Level Selection -->
+        <div class="form-group">
+          <label for="budgetInput">Stated Budget ($ per day)</label>
+          <input type="number" id="budgetInput" name="budget" class="form-control" value="25" min="5" max="500">
+        </div>
+
+        <!-- Cooking Time Limit Selection -->
+        <div class="form-group">
+          <label for="timeSelect">Available Cooking Time</label>
+          <select id="timeSelect" name="time" class="form-control">
+            <option value="30 minutes">Under 30 mins (Quick & Easy)</option>
+            <option value="1 hour" selected>Under 1 hour (Standard)</option>
+            <option value="2 hours">Under 2 hours (Moderate preparation)</option>
+            <option value="unlimited">No limits (Willing to slow cook)</option>
+          </select>
+        </div>
+
+        <!-- Generate Button -->
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+          ✨ Generate Cooking Plan
+        </button>
+
+      </form>
+    </section>
+
+    <!-- Right Panel: Results Dashboard -->
+    <section class="dashboard-container" aria-label="Generated meal results">
+      
+      <!-- Default Empty State -->
+      <div id="emptyState" class="empty-state">
+        <span class="empty-state-icon">🍲</span>
+        <h3>Ready to Plan Your Day?</h3>
+        <p>Set your culinary preferences on the left panel, supply your API key, and hit generate to construct your custom chef-designed cooking guide.</p>
+        <button class="btn btn-secondary" onclick="fillMockPreferences()">Load Quick Mock Details</button>
+      </div>
+
+      <!-- Shimmer Loader (Hidden by default) -->
+      <div id="shimmerLoader" class="shimmer-wrapper" style="display: none;">
+        <div class="shimmer-card">
+          <div class="shimmer-item shimmer-title"></div>
+          <div class="shimmer-item shimmer-text-long"></div>
+          <div class="shimmer-item shimmer-text-short"></div>
+          <div class="shimmer-blocks">
+            <div class="shimmer-item shimmer-block"></div>
+            <div class="shimmer-item shimmer-block"></div>
+          </div>
+        </div>
+        <div class="shimmer-card">
+          <div class="shimmer-item shimmer-title"></div>
+          <div class="shimmer-item shimmer-text-long"></div>
+        </div>
+      </div>
+
+      <!-- Live Dashboard Data (Hidden by default) -->
+      <div id="dashboardResults" style="display: none; display: flex; flex-direction: column; gap: 2rem;">
+        
+        <!-- Recipe Suggestions Section -->
+        <div>
+          <h3 class="section-title">
+            <span class="section-title-icon">🍽️</span> Daily Meals & Recipe Checklist
+          </h3>
+          <div id="mealsGrid" class="meal-suggestions-grid">
+            <!-- Meal cards loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Grocery List and Substitutions Split Grid -->
+        <div class="dashboard-split-grid">
+          
+          <!-- Column 1: Interactive Grocery Checklist -->
+          <div class="card" style="padding: 1.5rem;">
+            <h3 class="section-title" style="border: none; margin-bottom: 0.75rem;">
+              <span class="section-title-icon">🛒</span> Grocery List
+            </h3>
+            <div id="groceryListContent" class="grocery-categories">
+              <!-- Grocery items loaded dynamically -->
+            </div>
+          </div>
+
+          <!-- Column 2: Substitutions & Budget Note -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Substitutions -->
+            <div class="card" style="padding: 1.5rem;">
+              <h3 class="section-title" style="border: none; margin-bottom: 0.75rem;">
+                <span class="section-title-icon">♻️</span> Ingredient Substitutions
+              </h3>
+              <div id="substitutionsContent" class="substitution-grid">
+                <!-- Substitution details loaded dynamically -->
+              </div>
+            </div>
+
+            <!-- Budget Feasibility Box -->
+            <div class="card" style="padding: 1.5rem;">
+              <h3 class="section-title" style="border: none; margin-bottom: 0.75rem;">
+                <span class="section-title-icon">💰</span> Budget Feasibility
+              </h3>
+              <div id="budgetFeasibilityContent">
+                <!-- Budget notes loaded dynamically -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <!-- API Key Setup Modal -->
+  <div id="apiKeyModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Enter Gemini API Key</h3>
+        <button class="modal-close" onclick="toggleModal(false)">&times;</button>
+      </div>
+      <div class="key-info-box">
+        Your key is stored only in your local browser storage (`localStorage`) and will not be shared. You can obtain a free API key from the <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+      </div>
+      <div class="form-group">
+        <label for="apiKeyInput">Gemini API Key</label>
+        <input type="password" id="apiKeyInput" class="form-control" placeholder="AIzaSy...">
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button class="btn btn-secondary" onclick="toggleModal(false)">Cancel</button>
+        <button class="btn btn-primary" onclick="saveApiKey()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Alerts Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- App Footer -->
+  <footer>
+    <p>&copy; 2026 PrepChef AI. Built with HTML, CSS, and Gemini REST API client.</p>
+  </footer>
+
+  <!-- ==========================================
+       JavaScript Logic & App Controller
+       ========================================== -->
+  <script>
+    // Global States
+    let geminiApiKey = '';
+    const CONFIG_KEY = 'prepchef_gemini_api_key';
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadApiKey();
+      toggleCustomDietInput();
+    });
+
+    // API Key Management functions
+    function loadApiKey() {
+      const storedKey = localStorage.getItem(CONFIG_KEY);
+      const keyStatusBtn = document.getElementById('keyStatusBtn');
+      const apiKeyInput = document.getElementById('apiKeyInput');
+      
+      if (storedKey && storedKey.trim() !== '') {
+        geminiApiKey = storedKey.trim();
+        apiKeyInput.value = geminiApiKey;
+        keyStatusBtn.className = 'btn btn-key-status';
+        keyStatusBtn.innerHTML = '🔑 API Key Configured';
+      } else {
+        geminiApiKey = '';
+        apiKeyInput.value = '';
+        keyStatusBtn.className = 'btn btn-key-status missing';
+        keyStatusBtn.innerHTML = '🔑 Set API Key';
+      }
+    }
+
+    function saveApiKey() {
+      const keyInput = document.getElementById('apiKeyInput').value;
+      if (keyInput.trim() === '') {
+        localStorage.removeItem(CONFIG_KEY);
+        showToast('API Key removed', 'info');
+      } else {
+        localStorage.setItem(CONFIG_KEY, keyInput.trim());
+        showToast('API Key successfully saved!', 'success');
+      }
+      loadApiKey();
+      toggleModal(false);
+    }
+
+    function toggleModal(show) {
+      const modal = document.getElementById('apiKeyModal');
+      if (show) {
+        modal.classList.add('open');
+      } else {
+        modal.classList.remove('open');
+      }
+    }
+
+    // Interactive custom diet options UI
+    function toggleCustomDietInput() {
+      const select = document.getElementById('dietarySelect');
+      const customGroup = document.getElementById('customDietGroup');
+      if (select.value === 'Custom') {
+        customGroup.style.display = 'block';
+      } else {
+        customGroup.style.display = 'none';
+      }
+    }
+
+    // Mock presets for demo / quick testing
+    function fillMockPreferences() {
+      document.querySelector('input[name="meals"][value="Breakfast"]').checked = true;
+      document.querySelector('input[name="meals"][value="Lunch"]').checked = true;
+      document.querySelector('input[name="meals"][value="Dinner"]').checked = true;
+      document.querySelector('input[name="meals"][value="Snack"]').checked = true;
+      
+      document.getElementById('dietarySelect').value = 'Keto';
+      toggleCustomDietInput();
+      document.getElementById('budgetInput').value = '35';
+      document.getElementById('timeSelect').value = '1 hour';
+      showToast('Loaded demo preferences!', 'info');
+    }
+
+    // Displaying dynamic toast notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      let emoji = 'ℹ️';
+      if (type === 'success') emoji = '✅';
+      if (type === 'error') emoji = '❌';
+      
+      toast.innerHTML = `<span>${emoji}</span><span>${message}</span>`;
+      container.appendChild(toast);
+
+      // Auto dismiss after 4 seconds
+      setTimeout(() => {
+        toast.classList.add('hide');
+        toast.addEventListener('animationend', () => {
+          toast.remove();
+        });
+      }, 4000);
+    }
+
+    // Form Submission: API Generator handler
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+
+      // Validation
+      if (!geminiApiKey || geminiApiKey.trim() === '') {
+        showToast('Please set your Gemini API key in the top right header!', 'error');
+        toggleModal(true);
+        return;
+      }
+
+      const form = document.getElementById('preferencesForm');
+      const formData = new FormData(form);
+
+      // Get meal checks
+      const checkedMeals = [];
+      form.querySelectorAll('input[name="meals"]:checked').forEach(cb => {
+        checkedMeals.push(cb.value);
+      });
+
+      if (checkedMeals.length === 0) {
+        showToast('Please select at least one meal to generate a plan.', 'error');
+        return;
+      }
+
+      const dietary = formData.get('dietary');
+      const customDiet = formData.get('customDiet');
+      const budget = formData.get('budget');
+      const time = formData.get('time');
+
+      // Compose the dietary context string
+      let dietContext = dietary;
+      if (dietary === 'Custom' && customDiet.trim() !== '') {
+        dietContext = `Custom Requirements: ${customDiet}`;
+      }
+
+      // Hide results & empty states, show shimmer loader
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('dashboardResults').style.display = 'none';
+      document.getElementById('shimmerLoader').style.display = 'block';
+
+      try {
+        const rawJsonData = await callGeminiAPI(checkedMeals, dietContext, budget, time);
+        renderResults(rawJsonData, parseFloat(budget));
+        showToast('Meal plan generated successfully!', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'API request failed. Please check your credentials and prompt guidelines.', 'error');
+        
+        // Return view state to empty/inactive state
+        document.getElementById('shimmerLoader').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+      }
+    }
+
+    // Generative Model REST caller
+    async function callGeminiAPI(meals, dietary, budget, time) {
+      // Build user prompt
+      const prompt = `
+        You are a highly efficient kitchen companion. Generate a cooking planning layout based on the user's specific context:
+        - Target meals: ${meals.join(', ')}
+        - Dietary needs: ${dietary}
+        - Total Daily Budget: $${budget} USD
+        - Cooking Time Limit: ${time}
+        
+        Plan realistic, delicious, and easy-to-cook recipes that can be completed under the time constraint and stay within the daily budget limit.
+        
+        Output MUST be in valid JSON conforming EXACTLY to the structure schema.
+      `;
+
+      // Endpoint configuration
+      // We target the stable/v1beta endpoint using gemini-2.5-flash which is perfect for structured JSON outputs
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+      // Gemini REST API JSON Request payload specifying JSON Mode + Response Schema
+      const requestPayload = {
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              meals: {
+                type: "ARRAY",
+                description: "List of recommended meals for the cooking plan",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    type: { 
+                      type: "STRING", 
+                      description: "Meal classification (e.g. Breakfast, Lunch, Dinner, Snack)" 
+                    },
+                    name: { 
+                      type: "STRING", 
+                      description: "Title of the dish" 
+                    },
+                    description: { 
+                      type: "STRING", 
+                      description: "Short description of the meal flavor profile or concept" 
+                    },
+                    prep_time: { 
+                      type: "STRING", 
+                      description: "Preparation time representation (e.g. 15 mins)" 
+                    },
+                    instructions: {
+                      type: "ARRAY",
+                      description: "Interactive to-do step list for cooking",
+                      items: { type: "STRING" }
+                    }
+                  },
+                  required: ["type", "name", "description", "prep_time", "instructions"]
+                }
+              },
+              grocery_list: {
+                type: "ARRAY",
+                description: "Consolidated grocery list required to prepare all generated meals",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    item: { type: "STRING", description: "Name/quantity of item" },
+                    category: { type: "STRING", description: "Department/grocery category (Produce, Pantry, Meat, Dairy, etc.)" },
+                    estimated_cost: { type: "STRING", description: "Approximate cost value, e.g. $3.50" }
+                  },
+                  required: ["item", "category", "estimated_cost"]
+                }
+              },
+              substitutions: {
+                type: "ARRAY",
+                description: "Suggested modifications to ingredients for preference/allergens",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    original: { type: "STRING", description: "Standard recipe ingredient to substitute" },
+                    substitution: { type: "STRING", description: "Diet-compliant alternative" },
+                    reason: { type: "STRING", description: "Specific dietary reason/allergen avoidance note" }
+                  },
+                  required: ["original", "substitution", "reason"]
+                }
+              },
+              budget_note: {
+                type: "STRING",
+                description: "Analysis of whether the estimated grocery costs fit the user's budget and cooking tips to save money"
+              }
+            },
+            required: ["meals", "grocery_list", "substitutions", "budget_note"]
+          }
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `HTTP ${response.status} Error`;
+        throw new Error(`Gemini API Error: ${errorMessage}`);
+      }
+
+      const result = await response.json();
+      
+      // Extract response text content
+      try {
+        const textResponse = result.candidates[0].content.parts[0].text;
+        return JSON.parse(textResponse);
+      } catch (err) {
+        throw new Error("Unable to parse API response. Please try again.");
+      }
+    }
+
+    // Dynamic UI Renderer
+    function renderResults(data, limitBudget) {
+      // Toggle visibility
+      document.getElementById('shimmerLoader').style.display = 'none';
+      document.getElementById('dashboardResults').style.display = 'flex';
+
+      // 1. Render Meals & Recipe Checklist
+      const mealsGrid = document.getElementById('mealsGrid');
+      mealsGrid.innerHTML = '';
+
+      data.meals.forEach((meal, mealIndex) => {
+        const typeClass = meal.type.toLowerCase();
+        
+        // Assemble steps list
+        let stepsHTML = '';
+        meal.instructions.forEach((step, stepIndex) => {
+          stepsHTML += `
+            <li class="step-todo-item" onclick="toggleRecipeStep(${mealIndex}, ${stepIndex}, this)">
+              <input type="checkbox" id="step-${mealIndex}-${stepIndex}">
+              <label for="step-${mealIndex}-${stepIndex}">${step}</label>
+            </li>
+          `;
+        });
+
+        const mealCard = document.createElement('article');
+        mealCard.className = 'card meal-card';
+        mealCard.innerHTML = `
+          <span class="meal-badge ${typeClass}">${meal.type}</span>
+          <div class="meal-header">
+            <h4 class="meal-name">${meal.name}</h4>
+            <div class="meal-meta">
+              <span>⏱️ ${meal.prep_time}</span>
+            </div>
+          </div>
+          <p class="meal-description">${meal.description}</p>
+          
+          <div class="recipe-steps-section">
+            <div class="recipe-steps-header">
+              <span class="recipe-steps-title">To-Do Steps</span>
+              <span id="progress-text-${mealIndex}" style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted)">0% Done</span>
+            </div>
+            <div class="progress-bar-container">
+              <div id="progress-bar-${mealIndex}" class="progress-bar-fill"></div>
+            </div>
+            <ul id="steps-list-${mealIndex}" class="step-todo-list">
+              ${stepsHTML}
+            </ul>
+          </div>
+        `;
+        mealsGrid.appendChild(mealCard);
+      });
+
+      // 2. Render Grocery checklist grouped by category
+      const groceryContainer = document.getElementById('groceryListContent');
+      groceryContainer.innerHTML = '';
+
+      // Group items by category
+      const groupedGroceries = {};
+      data.grocery_list.forEach(item => {
+        const cat = item.category || 'Pantry';
+        if (!groupedGroceries[cat]) {
+          groupedGroceries[cat] = [];
+        }
+        groupedGroceries[cat].push(item);
+      });
+
+      // Sort & render groups
+      let itemIndex = 0;
+      Object.keys(groupedGroceries).forEach(category => {
+        const categoryBlock = document.createElement('div');
+        categoryBlock.className = 'grocery-category-block';
+        
+        let itemsHTML = '';
+        groupedGroceries[category].forEach(gItem => {
+          itemsHTML += `
+            <div class="grocery-item" onclick="toggleGroceryItem(this)">
+              <label class="grocery-item-left">
+                <input type="checkbox" id="grocery-${itemIndex}">
+                <span>${gItem.item}</span>
+              </label>
+              <span class="grocery-item-cost">${gItem.estimated_cost}</span>
+            </div>
+          `;
+          itemIndex++;
+        });
+
+        categoryBlock.innerHTML = `
+          <h4 class="category-title">${category}</h4>
+          <div class="grocery-items-list">
+            ${itemsHTML}
+          </div>
+        `;
+        groceryContainer.appendChild(categoryBlock);
+      });
+
+      // 3. Render Substitutions list
+      const subContainer = document.getElementById('substitutionsContent');
+      subContainer.innerHTML = '';
+
+      if (data.substitutions && data.substitutions.length > 0) {
+        data.substitutions.forEach(sub => {
+          const subCard = document.createElement('div');
+          subCard.className = 'substitution-card';
+          subCard.innerHTML = `
+            <div class="sub-comparison">
+              <span class="sub-original">${sub.original}</span>
+              <span class="sub-arrow">➔</span>
+              <span class="sub-replacement">${sub.substitution}</span>
+            </div>
+            <span class="sub-reason">${sub.reason}</span>
+          `;
+          subContainer.appendChild(subCard);
+        });
+      } else {
+        subContainer.innerHTML = `
+          <div style="font-size: 0.9rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">
+            No allergen substitutions needed for this plan.
+          </div>
+        `;
+      }
+
+      // 4. Render Budget Note & Feasibility badge
+      const budgetContainer = document.getElementById('budgetFeasibilityContent');
+      budgetContainer.innerHTML = '';
+
+      // Determine feasibility classification by parsing grocery prices
+      let totalCostEst = 0;
+      data.grocery_list.forEach(g => {
+        // Strip '$', commas, etc. to evaluate numeric value
+        const costVal = parseFloat(g.estimated_cost.replace(/[^0-9.]/g, ''));
+        if (!isNaN(costVal)) {
+          totalCostEst += costVal;
+        }
+      });
+
+      let statusClass = 'fit';
+      let statusTitle = 'Within Budget Plan';
+      
+      if (totalCostEst > limitBudget) {
+        statusClass = 'exceeded';
+        statusTitle = 'Exceeds Stated Budget';
+      } else if (totalCostEst > limitBudget * 0.85) {
+        statusClass = 'tight';
+        statusTitle = 'Close to Budget Limit';
+      }
+
+      const budgetCard = document.createElement('div');
+      budgetCard.className = `budget-note-card ${statusClass}`;
+      budgetCard.innerHTML = `
+        <div class="budget-note-title ${statusClass}">
+          <span>💰</span> ${statusTitle}
+        </div>
+        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">
+          Estimated Total: $${totalCostEst.toFixed(2)} USD (Stated Limit: $${limitBudget.toFixed(2)})
+        </div>
+        <p style="line-height: 1.5; color: var(--text-primary); font-size: 0.9rem;">
+          ${data.budget_note}
+        </p>
+      `;
+      budgetContainer.appendChild(budgetCard);
+    }
+
+    // Toggle Recipe Checkbox state and update progress bars
+    function toggleRecipeStep(mealIndex, stepIndex, element) {
+      const checkbox = element.querySelector('input[type="checkbox"]');
+      
+      // If trigger originates from list item click rather than native input checkbox check
+      if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+        checkbox.checked = !checkbox.checked;
+      }
+
+      if (checkbox.checked) {
+        element.classList.add('done');
+      } else {
+        element.classList.remove('done');
+      }
+
+      updateRecipeProgress(mealIndex);
+    }
+
+    function updateRecipeProgress(mealIndex) {
+      const stepsList = document.getElementById(`steps-list-${mealIndex}`);
+      const checkboxes = stepsList.querySelectorAll('input[type="checkbox"]');
+      const totalSteps = checkboxes.length;
+      let completedSteps = 0;
+
+      checkboxes.forEach(cb => {
+        if (cb.checked) completedSteps++;
+      });
+
+      const percentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      
+      // Update progress bar width and percent text value
+      document.getElementById(`progress-bar-${mealIndex}`).style.width = `${percentage}%`;
+      document.getElementById(`progress-text-${mealIndex}`).innerText = `${percentage}% Done`;
+    }
+
+    // Toggle Grocery list checkbox items styling
+    function toggleGroceryItem(element) {
+      const checkbox = element.querySelector('input[type="checkbox"]');
+
+      if (event.target !== checkbox) {
+        checkbox.checked = !checkbox.checked;
+      }
+
+      if (checkbox.checked) {
+        element.classList.add('checked');
+      } else {
+        element.classList.remove('checked');
+      }
+    }
+  </script>
+</body>
+</html>
